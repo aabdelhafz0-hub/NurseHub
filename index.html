@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NurseHub | منصة طلاب التمريض الذكية</title>
+    
+    <!-- Google Fonts: Cairo & Tajawal -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Cairo', 'Tajawal', 'sans-serif'],
+                    },
+                    colors: {
+                        medical: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        slate: {
+                            850: '#1e293b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f8fafc;
+        }
+        /* Custom subtle medical pattern */
+        .medical-bg {
+            background-color: #f0fdfa;
+            background-image: radial-gradient(#0d9488 0.75px, transparent 0.75px), radial-gradient(#0d9488 0.75px, #f0fdfa 0.75px);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
+            background-opacity: 0.05;
+        }
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(13, 148, 136, 0.1), 0 8px 10px -6px rgba(13, 148, 136, 0.05);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #0d9488;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0f766e;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased selection:bg-medical-500 selection:text-white">
+
+    <!-- Toast Notification Container (Replaces alert) -->
+    <div id="toast-container" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2"></div>
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logo -->
+                <a href="#" class="flex items-center gap-3 group">
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-medical-600 to-medical-800 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-heart-pulse text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-2xl font-extrabold bg-gradient-to-l from-medical-800 to-medical-600 bg-clip-text text-transparent">NurseHub</span>
+                        <span class="block text-xs text-slate-500 font-medium -mt-1">منصة طلاب التمريض</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Navigation -->
+                <nav class="hidden lg:flex items-center gap-7 font-semibold text-slate-600">
+                    <a href="#years-section" class="hover:text-medical-600 transition-colors">الفرق الدراسية</a>
+                    <a href="#books-section" class="hover:text-medical-600 transition-colors">الكتب والمراجع</a>
+                    <a href="#summaries-section" class="hover:text-medical-600 transition-colors">الملخصات الذكية</a>
+                    <a href="#videos-section" class="hover:text-medical-600 transition-colors">الشرح والعملي</a>
+                    <a href="#quiz-section" class="hover:text-medical-600 transition-colors">اختبر نفسك</a>
+                    <a href="#community-section" class="hover:text-medical-600 transition-colors">اسأل زميلك</a>
+                </nav>
+
+                <!-- Action Buttons -->
+                <div class="hidden sm:flex items-center gap-3">
+                    <button onclick="openContributeModal()" class="px-4 py-2.5 rounded-xl bg-medical-50 text-medical-700 font-bold text-sm hover:bg-medical-100 transition-colors flex items-center gap-2 border border-medical-200">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>شارك بملخصك</span>
+                    </button>
+                    <a href="#community-section" class="px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm shadow-sm hover:shadow transition-all flex items-center gap-2">
+                        <i class="fa-brands fa-telegram text-lg"></i>
+                        <span>جروب الدفعة</span>
+                    </a>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" class="lg:hidden p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 focus:outline-none">
+                    <i class="fa-solid fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Dropdown Navigation -->
+        <div id="mobile-menu" class="hidden lg:hidden bg-white border-t border-slate-100 px-4 pt-3 pb-6 space-y-2 shadow-xl">
+            <a href="#years-section" class="mobile-link block px-4 py-3 rounded-xl font-bold text-slate-700 hover:bg-medical-50 hover:text-medical-700">
+                <i class="fa-solid fa-graduation-cap ml-2 text-medical-600 w-5"></i> الفرق الدراسية
+            </a>
+            <a href="#books-section" class="mobile-link block px-4 py-3 rounded-xl font-bold text-slate-700 hover:bg-medical-50 hover:text-medical-700">
+                <i class="fa-solid fa-book-medical ml-2 text-medical-600 w-5"></i> الكتب والمراجع
+            </a>
+            <a href="#summaries-section" class="mobile-link block px-4 py-3 rounded-xl font-bold text-slate-700 hover:bg-medical-50 hover:text-medical-700">
+                <i class="fa-solid fa-wand-magic-sparkles ml-2 text-medical-600 w-5"></i> الملخصات الذكية (AI)
+            </a>
+            <a href="#videos-section" class="mobile-link block px-4 py-3 rounded-xl font-bold text-slate-700 hover:bg-medical-50 hover:text-medical-700">
+                <i class="fa-solid fa-circle-play ml-2 text-medical-600 w-5"></i> الفيديوهات والعملي
+            </a>
+            <a href="#quiz-section" class="mobile-link block px-4 py-3 rounded-xl font-bold text-slate-700 hover:bg-medical-50 hover:text-medical-700">
+                <i class="fa-solid fa-stethoscope ml-2 text-medical-600 w-5"></i> اختبر نفسك (بنك الأسئلة)
+            </a>
+            <a href="#community-section" class="mobile-link block px-4 py-3 rounded-xl font-bold text-slate-700 hover:bg-medical-50 hover:text-medical-700">
+                <i class="fa-solid fa-comments ml-2 text-medical-600 w-5"></i> اسأل زميلك
+            </a>
+            <div class="pt-3 flex flex-col gap-2 border-t border-slate-100">
+                <button onclick="openContributeModal()" class="w-full py-3 rounded-xl bg-medical-50 text-medical-700 font-bold text-center border border-medical-200">
+                    <i class="fa-solid fa-cloud-arrow-up ml-1"></i> شارك بملخصك
+                </button>
+                <a href="#community-section" class="w-full py-3 rounded-xl bg-sky-500 text-white font-bold text-center">
+                    <i class="fa-brands fa-telegram ml-1"></i> انضم لجروب التليجرام
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative overflow-hidden bg-gradient-to-b from-medical-50/90 via-white to-slate-50 pt-12 pb-20 lg:pt-20 lg:pb-28 border-b border-slate-200/60">
+        <!-- Decorative Medical Blobs -->
+        <div class="absolute top-10 right-10 w-72 h-72 bg-medical-200/30 rounded-full blur-3xl -z-10"></div>
+        <div class="absolute bottom-10 left-10 w-80 h-80 bg-sky-200/30 rounded-full blur-3xl -z-10"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-12 gap-12 items-center">
+                <!-- Text Content -->
+                <div class="lg:col-span-7 text-center lg:text-right space-y-6">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-medical-200 shadow-sm text-medical-700 font-bold text-sm">
+                        <span class="flex h-2.5 w-2.5 rounded-full bg-medical-500 animate-ping"></span>
+                        <span>أول منصة متكاملة لطلاب كلية التمريض</span>
+                    </div>
+
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 leading-tight">
+                        وداعاً لتشتت المذاكرة.. <br>
+                        <span class="bg-gradient-to-l from-medical-700 to-medical-500 bg-clip-text text-transparent">كل موادك في مكان واحد!</span>
+                    </h1>
+
+                    <p class="text-lg sm:text-xl text-slate-600 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                        كتب الكلية الرسمية، ملخصات ذكية مُعدّة بالذكاء الاصطناعي، فيديوهات شرح للعملي والنظري، ومجتمع تليجرام تفاعلي يربط الدفعة ببعضها بدون أي توهان.
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
+                        <a href="#years-section" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-lg shadow-lg shadow-medical-600/25 transition-all flex items-center justify-center gap-3">
+                            <span>اختر فرقتك الدراسية</span>
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </a>
+                        <a href="https://t.me" target="_blank" rel="noopener noreferrer" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white hover:bg-sky-50 text-sky-600 border-2 border-sky-500 font-bold text-lg transition-all flex items-center justify-center gap-3">
+                            <i class="fa-brands fa-telegram text-2xl"></i>
+                            <span>ادخل جروب التليجرام</span>
+                        </a>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="grid grid-cols-3 gap-4 pt-6 border-t border-slate-200/80 max-w-lg mx-auto lg:mx-0">
+                        <div>
+                            <div class="text-2xl sm:text-3xl font-extrabold text-medical-700">+45</div>
+                            <div class="text-xs sm:text-sm text-slate-500 font-semibold">ملخص ذكي جاهز</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl sm:text-3xl font-extrabold text-medical-700">4 فرق</div>
+                            <div class="text-xs sm:text-sm text-slate-500 font-semibold">تغطية شاملة للمواد</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl sm:text-3xl font-extrabold text-medical-700">100%</div>
+                            <div class="text-xs sm:text-sm text-slate-500 font-semibold">مجاني وبالتعاون</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hero Visual Card -->
+                <div class="lg:col-span-5">
+                    <div class="relative bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-100">
+                        <!-- Floating Badge -->
+                        <div class="absolute -top-4 -left-4 bg-amber-400 text-slate-900 font-extrabold px-4 py-2 rounded-2xl shadow-md text-sm flex items-center gap-2 rotate-3">
+                            <i class="fa-solid fa-robot"></i>
+                            <span>مدعوم بالـ AI</span>
+                        </div>
+
+                        <div class="flex items-center gap-4 mb-6 pb-4 border-b border-slate-100">
+                            <div class="w-14 h-14 rounded-2xl bg-medical-100 text-medical-700 flex items-center justify-center text-2xl">
+                                <i class="fa-solid fa-user-nurse"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg text-slate-800">خطة مذاكرة سريعة</h3>
+                                <p class="text-sm text-slate-500">كيف تستفيد من المنصة بأقصى شكل؟</p>
+                            </div>
+                        </div>
+
+                        <ul class="space-y-4">
+                            <li class="flex items-start gap-3.5 bg-slate-50 p-3.5 rounded-2xl">
+                                <span class="w-8 h-8 rounded-xl bg-medical-600 text-white font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-sm">حدد فرقتك ومادتك</h4>
+                                    <p class="text-xs text-slate-500 mt-0.5">تصفح المنهج مقسم بشكل منظم بدل البحث في الرسائل القديمة.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3.5 bg-slate-50 p-3.5 rounded-2xl">
+                                <span class="w-8 h-8 rounded-xl bg-medical-600 text-white font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-sm">اقرأ الملخص الذكي وشاهد العملي</h4>
+                                    <p class="text-xs text-slate-500 mt-0.5">نلخص كتب الكلية المعقدة في نقاط واضحة مع فيديوهات مبسطة.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3.5 bg-slate-50 p-3.5 rounded-2xl">
+                                <span class="w-8 h-8 rounded-xl bg-sky-500 text-white font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-sm">اختبر نفسك واسأل زمايلك</h4>
+                                    <p class="text-xs text-slate-500 mt-0.5">حل أسئلة MCQs ولو وقف معاك سؤال ابعته فوراً على تليجرام.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 1: Academic Years & Subjects Explorer -->
+    <section id="years-section" class="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-3xl mx-auto mb-12">
+            <span class="text-medical-600 font-bold text-sm tracking-wider uppercase bg-medical-50 px-3 py-1 rounded-full border border-medical-200">المسار الأكاديمي</span>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3">اختر فرقتك الدراسية</h2>
+            <p class="text-slate-600 mt-3">اضغط على فرقتك لعرض المواد الدراسية، عدد الملخصات المتاحة، وروابط المتابعة الخاصة بها.</p>
+        </div>
+
+        <!-- Year Switcher Tabs -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-10">
+            <button onclick="selectYear(1)" id="year-tab-1" class="year-tab active p-4 sm:p-5 rounded-2xl border-2 border-medical-600 bg-medical-600 text-white font-bold text-center shadow-md transition-all flex flex-col items-center gap-2">
+                <i class="fa-solid fa-seedling text-2xl"></i>
+                <span class="text-base sm:text-lg">الفرقة الأولى</span>
+                <span class="text-xs opacity-90 font-normal">أساسيات التمريض والتشريح</span>
+            </button>
+            <button onclick="selectYear(2)" id="year-tab-2" class="year-tab p-4 sm:p-5 rounded-2xl border-2 border-slate-200 bg-white text-slate-700 hover:border-medical-400 font-bold text-center transition-all flex flex-col items-center gap-2">
+                <i class="fa-solid fa-heart-pulse text-2xl text-medical-600"></i>
+                <span class="text-base sm:text-lg">الفرقة الثانية</span>
+                <span class="text-xs text-slate-500 font-normal">باطني وجراحي وفارما</span>
+            </button>
+            <button onclick="selectYear(3)" id="year-tab-3" class="year-tab p-4 sm:p-5 rounded-2xl border-2 border-slate-200 bg-white text-slate-700 hover:border-medical-400 font-bold text-center transition-all flex flex-col items-center gap-2">
+                <i class="fa-solid fa-baby text-2xl text-medical-600"></i>
+                <span class="text-base sm:text-lg">الفرقة الثالثة</span>
+                <span class="text-xs text-slate-500 font-normal">أطفال ونساء وتوليد</span>
+            </button>
+            <button onclick="selectYear(4)" id="year-tab-4" class="year-tab p-4 sm:p-5 rounded-2xl border-2 border-slate-200 bg-white text-slate-700 hover:border-medical-400 font-bold text-center transition-all flex flex-col items-center gap-2">
+                <i class="fa-solid fa-user-doctor text-2xl text-medical-600"></i>
+                <span class="text-base sm:text-lg">الفرقة الرابعة</span>
+                <span class="text-xs text-slate-500 font-normal">حالات حرجة وإدارة ونفسية</span>
+            </button>
+        </div>
+
+        <!-- Dynamic Subjects Grid -->
+        <div id="subjects-container" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Populated by JS -->
+        </div>
+    </section>
+
+    <!-- Section 2: Books & References (الكتب الدراسية) -->
+    <section id="books-section" class="py-16 lg:py-24 bg-slate-100/80 border-y border-slate-200/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+                <div>
+                    <span class="text-medical-700 font-bold text-sm bg-medical-100 px-3 py-1 rounded-full">المكتبة الرقمية</span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3">الكتب والمراجع الرسمية (PDF)</h2>
+                    <p class="text-slate-600 mt-2">نسخ نظيفة ومرتبة من كتب الكلية والمراجع المعتمدة جاهزة للتحميل السريع.</p>
+                </div>
+                <div class="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 mr-2"></i>
+                    <input type="text" id="book-search" onkeyup="filterBooks()" placeholder="ابحث باسم الكتاب..." class="bg-transparent border-none focus:outline-none text-sm py-1.5 px-2 w-48 sm:w-64">
+                </div>
+            </div>
+
+            <div id="books-grid" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 3: AI Smart Summaries (الملخصات الذكية) -->
+    <section id="summaries-section" class="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-3xl mx-auto mb-12">
+            <div class="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-1.5 rounded-full text-sm font-bold mb-3">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>ملخصات مُعززة بالذكاء الاصطناعي</span>
+            </div>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900">الملخصات الذكية وخرائط المذاكرة</h2>
+            <p class="text-slate-600 mt-3">حولنا صفحات الكتب الطويلة لنقاط مركزة، جداول مقارنة، وأهم الأسئلة المتوقعة في الامتحان.</p>
+        </div>
+
+        <!-- Filter Pills -->
+        <div class="flex flex-wrap justify-center gap-2 sm:gap-3 mb-10">
+            <button onclick="filterSummaries('all')" class="summary-filter active px-5 py-2.5 rounded-xl font-bold text-sm bg-medical-600 text-white shadow-sm transition-all">الكل</button>
+            <button onclick="filterSummaries('fundamentals')" class="summary-filter px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-600 border border-slate-200 hover:border-medical-500 transition-all">أساسيات تمريض</button>
+            <button onclick="filterSummaries('pharma')" class="summary-filter px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-600 border border-slate-200 hover:border-medical-500 transition-all">فارماكولوجي</button>
+            <button onclick="filterSummaries('medsurg')" class="summary-filter px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-600 border border-slate-200 hover:border-medical-500 transition-all">باطني وجراحي</button>
+            <button onclick="filterSummaries('critical')" class="summary-filter px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-600 border border-slate-200 hover:border-medical-500 transition-all">عناية مركزة</button>
+        </div>
+
+        <div id="summaries-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Populated by JS -->
+        </div>
+    </section>
+
+    <!-- Section 4: Video Explanations & Practical Skills (الفيديوهات التوضيحية والعملي) -->
+    <section id="videos-section" class="py-16 lg:py-24 bg-slate-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+                <div>
+                    <span class="text-medical-400 font-bold text-sm bg-medical-900/60 border border-medical-700 px-3 py-1 rounded-full">المعمل الإكلينيكي</span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold mt-3">شروحات العملي والفيديوهات التوضيحية</h2>
+                    <p class="text-slate-300 mt-2">خطوات المهارات التمريضية (Checklists) مشروحة بالفيديو والرسوم التوضيحية.</p>
+                </div>
+                <a href="#community-section" class="inline-flex items-center gap-2 text-medical-400 hover:text-medical-300 font-bold text-sm">
+                    <span>اطلب شرح مهارة معينة</span>
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- Video Card 1 -->
+                <div class="bg-slate-800/80 border border-slate-700 rounded-3xl overflow-hidden card-hover group">
+                    <div class="relative h-48 bg-gradient-to-br from-medical-700 to-slate-800 flex items-center justify-center overflow-hidden">
+                        <i class="fa-solid fa-syringe text-6xl text-white/20 group-hover:scale-110 transition-transform"></i>
+                        <button onclick="openVideoModal('تركيب الكانيولا الوريدية (IV Cannulation)', 'شرح عملي خطوة بخطوة لاختيار الوريد المناسب، التعقيم، زاوية الدخول، وتثبيت الكانيولا بشكل صحيح بدون ألم للمريض.')" class="absolute w-16 h-16 rounded-full bg-medical-500 hover:bg-medical-400 text-white flex items-center justify-center shadow-xl transition-transform group-hover:scale-110">
+                            <i class="fa-solid fa-play text-xl mr-1"></i>
+                        </button>
+                        <span class="absolute bottom-3 right-3 bg-black/70 text-xs px-2.5 py-1 rounded-lg font-semibold">06:45 دقيقة</span>
+                    </div>
+                    <div class="p-6">
+                        <span class="text-xs font-bold text-medical-400">أساسيات التمريض - عملي</span>
+                        <h3 class="text-xl font-bold mt-1 mb-2">تركيب الكانيولا الوريدية (IV Cannulation)</h3>
+                        <p class="text-slate-400 text-sm line-clamp-2">أهم الخطوات لتجنب انفجار الوريد وضمان التعقيم الكامل حسب معايير مكافحة العدوى.</p>
+                    </div>
+                </div>
+
+                <!-- Video Card 2 -->
+                <div class="bg-slate-800/80 border border-slate-700 rounded-3xl overflow-hidden card-hover group">
+                    <div class="relative h-48 bg-gradient-to-br from-sky-700 to-slate-800 flex items-center justify-center overflow-hidden">
+                        <i class="fa-solid fa-heart-circle-bolt text-6xl text-white/20 group-hover:scale-110 transition-transform"></i>
+                        <button onclick="openVideoModal('قراءة رسم القلب الأساسي (ECG Interpretation)', 'تبسيط موجات P, QRS, T وكيفية حساب معدل ضربات القلب واكتشاف الجلطات واضطرابات النبض بسهولة.')" class="absolute w-16 h-16 rounded-full bg-medical-500 hover:bg-medical-400 text-white flex items-center justify-center shadow-xl transition-transform group-hover:scale-110">
+                            <i class="fa-solid fa-play text-xl mr-1"></i>
+                        </button>
+                        <span class="absolute bottom-3 right-3 bg-black/70 text-xs px-2.5 py-1 rounded-lg font-semibold">12:20 دقيقة</span>
+                    </div>
+                    <div class="p-6">
+                        <span class="text-xs font-bold text-sky-400">حالات حرجة وطوارئ</span>
+                        <h3 class="text-xl font-bold mt-1 mb-2">تبسيط قراءة رسم القلب (ECG)</h3>
+                        <p class="text-slate-400 text-sm line-clamp-2">شرح بالرسوم المتحركة لفهم كهرباء القلب وتحديد أشهر الحالات الطارئة في دقائق.</p>
+                    </div>
+                </div>
+
+                <!-- Video Card 3 -->
+                <div class="bg-slate-800/80 border border-slate-700 rounded-3xl overflow-hidden card-hover group">
+                    <div class="relative h-48 bg-gradient-to-br from-teal-700 to-slate-800 flex items-center justify-center overflow-hidden">
+                        <i class="fa-solid fa-lungs text-6xl text-white/20 group-hover:scale-110 transition-transform"></i>
+                        <button onclick="openVideoModal('قياس العلامات الحيوية والفحص السريري (Vital Signs)', 'الطريقة الصحيحة لقياس ضغط الدم، النبض، التنفس، والحرارة مع تفسير القراءات غير الطبيعية.')" class="absolute w-16 h-16 rounded-full bg-medical-500 hover:bg-medical-400 text-white flex items-center justify-center shadow-xl transition-transform group-hover:scale-110">
+                            <i class="fa-solid fa-play text-xl mr-1"></i>
+                        </button>
+                        <span class="absolute bottom-3 right-3 bg-black/70 text-xs px-2.5 py-1 rounded-lg font-semibold">08:15 دقيقة</span>
+                    </div>
+                    <div class="p-6">
+                        <span class="text-xs font-bold text-teal-400">التقييم الصحي</span>
+                        <h3 class="text-xl font-bold mt-1 mb-2">قياس العلامات الحيوية بدقة</h3>
+                        <p class="text-slate-400 text-sm line-clamp-2">الأخطاء الشائعة أثناء قياس ضغط الدم وكيفية تقييم معدل التنفس والأكسجين.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 5: Interactive Quiz / Self-Test (اختبر نفسك) -->
+    <section id="quiz-section" class="py-16 lg:py-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+            <span class="text-medical-700 font-bold text-sm bg-medical-100 px-3 py-1 rounded-full">تدريب سريع</span>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3">اختبر معلوماتك التمريضية (MCQs)</h2>
+            <p class="text-slate-600 mt-2">أسئلة بنظام امتحانات الكلية و NCLEX مع تصحيح فوري وتفسير للإجابة.</p>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-xl border border-slate-200/80 p-6 sm:p-10">
+            <!-- Quiz Header -->
+            <div class="flex items-center justify-between pb-6 mb-6 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-medical-100 text-medical-700 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-clipboard-question"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 block">السؤال الحالي</span>
+                        <span id="quiz-progress" class="font-extrabold text-slate-800">1 من 4</span>
+                    </div>
+                </div>
+                <div class="bg-medical-50 text-medical-800 px-4 py-2 rounded-xl font-bold text-sm border border-medical-200">
+                    النتيجة: <span id="quiz-score">0</span>
+                </div>
+            </div>
+
+            <!-- Question Box -->
+            <div id="quiz-box">
+                <h3 id="question-text" class="text-xl sm:text-2xl font-bold text-slate-800 mb-6 leading-relaxed"></h3>
+                
+                <div id="options-container" class="space-y-3">
+                    <!-- Options injected by JS -->
+                </div>
+
+                <!-- Rationale / Explanation Box -->
+                <div id="rationale-box" class="hidden mt-6 p-4 rounded-2xl bg-sky-50 border border-sky-200 text-sky-900 text-sm leading-relaxed">
+                    <div class="font-bold flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-lightbulb text-amber-500"></i>
+                        <span>التفسير العلمي (Rationale):</span>
+                    </div>
+                    <p id="rationale-text"></p>
+                </div>
+
+                <div class="mt-8 flex justify-end">
+                    <button id="next-question-btn" onclick="nextQuestion()" class="hidden px-6 py-3 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold transition-all flex items-center gap-2">
+                        <span>السؤال التالي</span>
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Final Result Box -->
+            <div id="quiz-result" class="hidden text-center py-8 space-y-5">
+                <div class="w-20 h-20 rounded-full bg-medical-100 text-medical-600 flex items-center justify-center text-4xl mx-auto">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+                <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900">عاش يا بطل التمريض!</h3>
+                <p id="final-score-text" class="text-lg text-slate-600"></p>
+                <div class="flex flex-wrap justify-center gap-3 pt-2">
+                    <button onclick="restartQuiz()" class="px-6 py-3 rounded-xl bg-medical-600 text-white font-bold hover:bg-medical-700 transition-all">
+                        <i class="fa-solid fa-rotate-right ml-1"></i> إعادة الاختبار
+                    </button>
+                    <a href="#community-section" class="px-6 py-3 rounded-xl bg-sky-500 text-white font-bold hover:bg-sky-600 transition-all">
+                        <i class="fa-brands fa-telegram ml-1"></i> ناقش الأسئلة على تليجرام
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 6: Ask Your Colleague & Telegram Community Hub (اسأل زميلك) -->
+    <section id="community-section" class="py-16 lg:py-24 bg-gradient-to-br from-medical-900 via-medical-800 to-slate-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-12 gap-10 items-start">
+                
+                <!-- Left Column: Telegram Hub & Question Form -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/20 border border-sky-400/30 text-sky-300 text-sm font-bold">
+                        <i class="fa-brands fa-telegram"></i>
+                        <span>مجتمع الدفعة التفاعلي</span>
+                    </div>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold leading-tight">اسأل زميلك.. مفيش حد هيتوه لوحده!</h2>
+                    <p class="text-slate-300 leading-relaxed">
+                        واقف قدامك جزئية في المحاضرة أو مش فاهم سؤال في العملي؟ اكتب سؤالك هنا هينزل في لوحة الأسئلة وتقدر تبعته بضغطة زر لجروب التليجرام عشان الدفعة كلها تساعدك.
+                    </p>
+
+                    <!-- Ask Form -->
+                    <form onsubmit="handleQuestionSubmit(event)" class="bg-white/10 backdrop-blur-md border border-white/15 rounded-3xl p-6 space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 text-medical-200">اسمك (أو اكتب فاعل خير)</label>
+                            <input type="text" id="q-author" required placeholder="مثال: أحمد - فرقة تانية" class="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 text-white placeholder-slate-400 focus:outline-none focus:border-medical-400">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 text-medical-200">المادة الدراسية</label>
+                            <select id="q-subject" class="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 text-white focus:outline-none focus:border-medical-400">
+                                <option value="أساسيات تمريض">أساسيات تمريض</option>
+                                <option value="باطني وجراحي">باطني وجراحي</option>
+                                <option value="فارماكولوجي">فارماكولوجي (أدوية)</option>
+                                <option value="تمريض أطفال">تمريض أطفال</option>
+                                <option value="حالات حرجة وطوارئ">حالات حرجة وطوارئ</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 text-medical-200">اكتب سؤالك أو استفسارك</label>
+                            <textarea id="q-text" rows="3" required placeholder="مثال: يا شباب إيه الفرق بين Hypoglycemia و Hyperglycemia في الأعراض السريعة؟" class="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 text-white placeholder-slate-400 focus:outline-none focus:border-medical-400"></textarea>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                            <button type="submit" class="flex-1 py-3.5 px-5 rounded-xl bg-medical-500 hover:bg-medical-400 text-slate-950 font-extrabold transition-all flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-paper-plane"></i>
+                                <span>انشر السؤال هنا</span>
+                            </button>
+                            <button type="button" onclick="shareToTelegram()" class="py-3.5 px-5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold transition-all flex items-center justify-center gap-2">
+                                <i class="fa-brands fa-telegram text-lg"></i>
+                                <span>ابعته تليجرام</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Right Column: Live Q&A Board + Direct Telegram Channels -->
+                <div class="lg:col-span-7 space-y-6">
+                    <!-- Direct Telegram Channels Banner -->
+                    <div class="bg-gradient-to-l from-sky-600 to-sky-500 rounded-3xl p-6 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-4 text-center sm:text-right">
+                            <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl shrink-0">
+                                <i class="fa-brands fa-telegram"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-extrabold text-xl">جروب وقناة تليجرام الرسمية للدفعة</h3>
+                                <p class="text-sky-100 text-sm">تنبيهات المحاضرات، الملخصات الصوتية، والنقاشات المباشرة 24 ساعة.</p>
+                            </div>
+                        </div>
+                        <a href="https://t.me" target="_blank" rel="noopener noreferrer" class="px-6 py-3 rounded-xl bg-white text-sky-600 font-extrabold hover:bg-sky-50 transition-all shrink-0 shadow">
+                            انضم الآن مجاناً
+                        </a>
+                    </div>
+
+                    <!-- Live Questions Feed -->
+                    <div class="bg-white/5 border border-white/10 rounded-3xl p-6">
+                        <div class="flex items-center justify-between mb-5">
+                            <h3 class="font-bold text-lg flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>أحدث أسئلة الطلاب</span>
+                            </h3>
+                            <span class="text-xs text-slate-400">تحديث مباشر</span>
+                        </div>
+
+                        <div id="questions-feed" class="space-y-4 max-h-[430px] overflow-y-auto pl-1">
+                            <!-- Initial Sample Questions -->
+                            <div class="bg-slate-900/70 border border-slate-700/80 rounded-2xl p-4 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-bold text-sm text-medical-400"><i class="fa-solid fa-user-nurse ml-1"></i> سارة محمود (فرقة تانية)</span>
+                                    <span class="text-xs bg-medical-900 text-medical-300 px-2.5 py-0.5 rounded-full">فارماكولوجي</span>
+                                </div>
+                                <p class="text-sm text-slate-200">حد عنده طريقة سهلة نحفظ بيها مجموعات أدوية الضغط (Antihypertensives) ونهايات كل عيلة؟</p>
+                                <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                                    <span><i class="fa-solid fa-reply text-emerald-400 ml-1"></i> رد زميلك: عيلة ACEI بتنتهي بـ pril زي Captopril، وعيلة Beta blockers بـ lol زي Atenolol.</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-900/70 border border-slate-700/80 rounded-2xl p-4 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-bold text-sm text-medical-400"><i class="fa-solid fa-user-nurse ml-1"></i> عمر طارق (فرقة أولى)</span>
+                                    <span class="text-xs bg-medical-900 text-medical-300 px-2.5 py-0.5 rounded-full">أساسيات تمريض</span>
+                                </div>
+                                <p class="text-sm text-slate-200">يا شباب في امتحان العملي بكرة، إيه أهم حاجة نركز عليها في خطوات غسيل الأيدي الجراحي؟</p>
+                                <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                                    <span><i class="fa-solid fa-clock ml-1"></i> منذ 15 دقيقة</span>
+                                    <a href="https://t.me" target="_blank" class="text-sky-400 hover:underline">جاوب على تليجرام <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 text-slate-400 py-12 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-medical-600 flex items-center justify-center text-white">
+                        <i class="fa-solid fa-heart-pulse text-lg"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-extrabold text-white">NurseHub</span>
+                        <p class="text-xs text-slate-500">مبادرة طلابية لتبسيط علوم التمريض ومساعدة الدفعة</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-6 text-sm font-medium">
+                    <a href="#years-section" class="hover:text-medical-400 transition-colors">الفرق الدراسية</a>
+                    <a href="#books-section" class="hover:text-medical-400 transition-colors">الكتب</a>
+                    <a href="#summaries-section" class="hover:text-medical-400 transition-colors">الملخصات</a>
+                    <button onclick="openContributeModal()" class="hover:text-medical-400 transition-colors">شارك بملخصك</button>
+                </div>
+
+                <div class="text-xs text-slate-500 text-center md:text-left">
+                    صُنع بكل <i class="fa-solid fa-heart text-rose-500"></i> لطلاب كلية التمريض &copy; 2026
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal 1: Summary Reader Modal -->
+    <div id="summary-modal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-fade-in">
+            <div class="p-6 bg-medical-700 text-white flex items-center justify-between">
+                <div>
+                    <span id="modal-summary-tag" class="text-xs bg-white/20 px-2.5 py-1 rounded-full font-bold">ملخص ذكي</span>
+                    <h3 id="modal-summary-title" class="text-xl font-extrabold mt-1">عنوان الملخص</h3>
+                </div>
+                <button onclick="closeModal('summary-modal')" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div id="modal-summary-body" class="p-6 overflow-y-auto space-y-4 text-slate-700 leading-relaxed text-sm sm:text-base">
+                <!-- Content injected by JS -->
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <button onclick="showToast('جاري تحميل نسخة الـ PDF من Google Drive...', 'success')" class="px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>تحميل الملخص PDF</span>
+                </button>
+                <a href="https://t.me" target="_blank" class="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm flex items-center gap-2">
+                    <i class="fa-brands fa-telegram"></i>
+                    <span>ناقش الملخص على تليجرام</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: Video Preview Modal -->
+    <div id="video-modal" class="fixed inset-0 z-50 hidden bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl text-white">
+            <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+                <h3 id="modal-video-title" class="font-bold text-lg text-medical-400">عنوان الفيديو</h3>
+                <button onclick="closeModal('video-modal')" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="aspect-video bg-slate-950 flex flex-col items-center justify-center p-8 text-center relative">
+                <div class="w-20 h-20 rounded-full bg-medical-600/20 border-2 border-medical-500 flex items-center justify-center text-medical-400 text-3xl mb-4 animate-pulse">
+                    <i class="fa-solid fa-film"></i>
+                </div>
+                <p id="modal-video-desc" class="text-slate-300 max-w-md text-sm leading-relaxed mb-4"></p>
+                <span class="text-xs bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg border border-slate-700">
+                    مكان تضمين فيديو الشرح من YouTube / Google Drive
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: Contribute Summary Modal (شارك بملخصك) -->
+    <div id="contribute-modal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl">
+            <div class="p-6 bg-gradient-to-l from-medical-700 to-medical-600 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-hand-holding-heart text-2xl"></i>
+                    <div>
+                        <h3 class="font-extrabold text-xl">شارك بملخصك وساعد دفعتك</h3>
+                        <p class="text-xs text-medical-100">هينزل باسمك على المنصة وفي قناة التليجرام</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('contribute-modal')" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form onsubmit="handleContributeSubmit(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">اسمك بالكامل (ليُكتب على الملخص)</label>
+                    <input type="text" required placeholder="مثال: د. مريم خالد" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-medical-600">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">الفرقة</label>
+                        <select class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-medical-600">
+                            <option>الفرقة الأولى</option>
+                            <option>الفرقة الثانية</option>
+                            <option>الفرقة الثالثة</option>
+                            <option>الفرقة الرابعة</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">اسم المادة</label>
+                        <input type="text" required placeholder="مثال: باثولوجي" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-medical-600">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">رابط الملف (Google Drive أو Telegram)</label>
+                    <input type="url" required placeholder="https://drive.google.com/..." class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-medical-600">
+                </div>
+                <button type="submit" class="w-full py-3.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold shadow-md transition-all">
+                    إرسال الملخص للمراجعة والنشر
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <!-- NurseHub dynamic application -->
+    <script src="./config.js"></script>
+    <script src="./api.js"></script>
+    <script>
+      const DB = {AcademicSubjects:[],Books:[],Summaries:[],QuizQuestions:[],Videos:[],SiteSettings:{},CommunityQuestions:[]};
+      let currentYear = 1, currentCategory = 'all', currentQuestionIndex = 0, score = 0, answered = false;
+      let activeSummary = null, activeVideo = null;
+
+      function callServer(method, ...args) {
+        return window.NurseHubAPI.call(method, ...args);
+      }
+      function activeRows(rows) {
+        return (rows || []).filter(x => x.is_active === true || String(x.is_active).toLowerCase() === 'true' || x.is_active === 1 || x.is_active === '');
+      }
+      function setting(key, fallback='') { return DB.SiteSettings[key] || fallback; }
+      function safe(v) { return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+
+      document.addEventListener('DOMContentLoaded', async () => {
+        document.getElementById('mobile-menu-btn')?.addEventListener('click', () => document.getElementById('mobile-menu').classList.toggle('hidden'));
+        document.querySelectorAll('.mobile-link').forEach(a => a.addEventListener('click', () => document.getElementById('mobile-menu').classList.add('hidden')));
+        try {
+          const data = await callServer('getPublicData');
+          Object.assign(DB, data);
+          document.title = (setting('site_name','NurseHub')) + ' | ' + setting('site_tagline','منصة طلاب التمريض');
+          document.querySelectorAll('header a[href="#"]').forEach(a => { const s=a.querySelector('span'); if(s) s.textContent=setting('site_name','NurseHub'); });
+          document.querySelectorAll('a[href="https://t.me"]').forEach(a => a.href=setting('telegram_url','https://t.me'));
+          selectYear(1); renderBooks(activeRows(DB.Books)); renderSummaries('all'); renderVideos(); renderCommunity(); loadQuestion();
+        } catch (e) {
+          console.error(e); showToast('تعذر تحميل البيانات. راجع إعدادات الربط ونشر التطبيق.', 'error');
+        }
+      });
+
+      function selectYear(year) {
+        currentYear = Number(year);
+        document.querySelectorAll('.year-tab').forEach((tab, idx) => {
+          const icon=tab.querySelector('i'), subtext=tab.querySelectorAll('span')[1];
+          if(idx+1===currentYear){tab.className='year-tab active p-4 sm:p-5 rounded-2xl border-2 border-medical-600 bg-medical-600 text-white font-bold text-center shadow-md transition-all flex flex-col items-center gap-2'; icon?.classList.remove('text-medical-600'); if(subtext) subtext.className='text-xs opacity-90 font-normal';}
+          else {tab.className='year-tab p-4 sm:p-5 rounded-2xl border-2 border-slate-200 bg-white text-slate-700 hover:border-medical-400 font-bold text-center transition-all flex flex-col items-center gap-2'; icon?.classList.add('text-medical-600'); if(subtext) subtext.className='text-xs text-slate-500 font-normal';}
+        });
+        const subjects=activeRows(DB.AcademicSubjects).filter(x=>Number(x.year)===currentYear);
+        const container=document.getElementById('subjects-container');
+        container.innerHTML=subjects.length?subjects.map(sub=>`
+          <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm card-hover flex flex-col justify-between">
+            <div><div class="flex items-center justify-between mb-4"><div class="w-12 h-12 rounded-2xl bg-medical-50 text-medical-600 flex items-center justify-center text-xl border border-medical-100"><i class="fa-solid ${safe(sub.icon||'fa-book')}"></i></div>
+            <div class="flex gap-2 text-xs font-bold"><span class="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg">${safe(sub.summaries_count||0)} ملخصات</span><span class="bg-sky-50 text-sky-600 px-2.5 py-1 rounded-lg">${safe(sub.videos_count||0)} فيديو</span></div></div>
+            <h3 class="text-xl font-extrabold text-slate-800 mb-2">${safe(sub.subject_name)}</h3><p class="text-sm text-slate-500 leading-relaxed mb-6">${safe(sub.description)}</p></div>
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-between gap-2"><a href="#summaries-section" onclick="filterSummaries('${safe(sub.subject_name)}')" class="text-sm font-bold text-medical-600">تصفح الملخصات ←</a><a href="${safe(sub.telegram_url||setting('telegram_url','https://t.me'))}" target="_blank" class="text-xs font-bold bg-sky-50 text-sky-600 px-3 py-1.5 rounded-lg">نقاش المادة</a></div>
+          </div>`).join(''):'<p class="col-span-full text-center text-slate-500 py-8">لا توجد مواد مضافة لهذه الفرقة حتى الآن.</p>';
+      }
+
+      function renderBooks(list) {
+        const grid=document.getElementById('books-grid');
+        grid.innerHTML=list.length?list.map(b=>`
+          <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm card-hover flex flex-col justify-between"><div>
+          <div class="h-36 rounded-2xl bg-gradient-to-br from-medical-50 to-slate-100 border flex flex-col items-center justify-center mb-4"><i class="fa-solid ${safe(b.icon||'fa-book-medical')} text-4xl text-medical-600 mb-2"></i><span class="text-xs font-bold text-medical-800 bg-white px-2.5 py-0.5 rounded-full">${safe(b.year)}</span></div>
+          <h3 class="font-bold text-slate-800 text-base mb-2">${safe(b.title)}</h3><div class="flex gap-3 text-xs text-slate-500 mb-4"><span>${safe(b.pages||'')}</span><span>${safe(b.size||'')}</span></div></div>
+          ${b.file_url?`<a href="${safe(b.file_url)}" target="_blank" rel="noopener" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-medical-600 text-white font-bold text-sm text-center">تحميل الكتاب PDF</a>`:'<span class="text-center text-xs text-slate-400 py-2">رابط التحميل سيُضاف قريباً</span>'}</div>`).join(''):'<div class="col-span-full text-center py-8 text-slate-500 font-bold">لا توجد كتب متاحة حالياً.</div>';
+      }
+      function filterBooks(){const q=document.getElementById('book-search').value.toLowerCase();renderBooks(activeRows(DB.Books).filter(b=>String(b.title).toLowerCase().includes(q)||String(b.year).toLowerCase().includes(q)));}
+      function renderSummaries(category='all') {
+        currentCategory=category;
+        let rows=activeRows(DB.Summaries);
+        if(category!=='all') rows=rows.filter(s=>String(s.category)===category||String(s.tag)===category||String(s.category)===category.toLowerCase());
+        const grid=document.getElementById('summaries-grid');
+        grid.innerHTML=rows.length?rows.map(s=>`
+          <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm card-hover flex flex-col justify-between"><div>
+          <span class="text-xs font-bold text-medical-700 bg-medical-50 px-3 py-1 rounded-full">${safe(s.tag||s.category)}</span>
+          <h3 class="text-lg font-extrabold text-slate-800 mt-4 mb-2">${safe(s.title)}</h3>
+          <div class="text-xs text-slate-500 mb-3">${safe(s.read_time||s.readTime||'')} ${s.author?' • '+safe(s.author):''}</div></div>
+          <div class="flex items-center gap-2 pt-3 border-t border-slate-100">
+          <button onclick="openSummaryModal(${Number(s.id)})" class="flex-1 py-2.5 px-4 rounded-xl bg-medical-600 text-white font-bold text-sm">قراءة الملخص</button>
+          ${s.pdf_url?`<a href="${safe(s.pdf_url)}" target="_blank" class="p-2.5 rounded-xl bg-slate-100 text-slate-600" title="تحميل PDF"><i class="fa-solid fa-download"></i></a>`:''}</div></div>`).join(''):'<div class="col-span-full text-center py-8 text-slate-500">لا توجد ملخصات في هذا القسم حالياً.</div>';
+      }
+      function filterSummaries(cat){renderSummaries(cat);}
+      function openSummaryModal(id){
+        const s=activeRows(DB.Summaries).find(x=>Number(x.id)===Number(id)); if(!s)return;
+        activeSummary=s; document.getElementById('modal-summary-tag').innerText=s.tag||s.category||'ملخص';
+        document.getElementById('modal-summary-title').innerText=s.title||'';
+        document.getElementById('modal-summary-body').innerHTML=s.content_html||'<p>لا يوجد محتوى نصي لهذا الملخص.</p>';
+        const pdf=document.querySelector('#summary-modal .p-4 button');
+        if(pdf){pdf.onclick=()=>s.pdf_url?window.open(s.pdf_url,'_blank'):showToast('لم تتم إضافة رابط PDF بعد.','info');}
+        document.getElementById('summary-modal').classList.remove('hidden');
+      }
+
+      function renderVideos(){
+        const host=document.querySelector('#videos-section .grid.md\\:grid-cols-3');
+        if(!host)return;
+        const rows=activeRows(DB.Videos);
+        host.innerHTML=rows.length?rows.map(v=>`<div class="bg-slate-800/80 border border-slate-700 rounded-3xl overflow-hidden card-hover group">
+          <div class="relative h-48 bg-gradient-to-br from-medical-700 to-slate-800 flex items-center justify-center overflow-hidden">
+          ${v.thumbnail_url?`<img src="${safe(v.thumbnail_url)}" class="w-full h-full object-cover" alt="">`:`<i class="fa-solid fa-circle-play text-6xl text-white/30"></i>`}
+          <button onclick="openVideoModal(${JSON.stringify(String(v.title||''))},${JSON.stringify(String(v.description||''))},${JSON.stringify(String(v.video_url||''))})" class="absolute w-16 h-16 rounded-full bg-medical-500 text-white flex items-center justify-center"><i class="fa-solid fa-play text-xl"></i></button>
+          <span class="absolute bottom-3 right-3 bg-black/70 text-xs px-2.5 py-1 rounded-lg">${safe(v.duration||'')}</span></div>
+          <div class="p-6"><span class="text-xs font-bold text-medical-400">${safe(v.subject_name||v.year||'')}</span><h3 class="text-xl font-bold mt-1 mb-2">${safe(v.title)}</h3><p class="text-slate-400 text-sm">${safe(v.description||'')}</p></div></div>`).join(''):'<div class="col-span-full text-center text-slate-300 py-8">سيتم إضافة الفيديوهات قريباً.</div>';
+      }
+      function openVideoModal(title,desc,url=''){
+        document.getElementById('modal-video-title').innerText=title; document.getElementById('modal-video-desc').innerText=desc;
+        const box=document.querySelector('#video-modal .aspect-video');
+        box.innerHTML=url?`<iframe class="w-full h-full" src="${safe(toEmbedUrl(url))}" title="${safe(title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`:`<div class="p-8 text-center text-slate-300">${safe(desc)}<p class="mt-3 text-xs">لم تتم إضافة رابط تشغيل للفيديو.</p></div>`;
+        document.getElementById('video-modal').classList.remove('hidden');
+      }
+      function toEmbedUrl(url){try{const u=new URL(url);if(u.hostname.includes('youtu.be'))return 'https://www.youtube.com/embed/'+u.pathname.slice(1);if(u.hostname.includes('youtube.com'))return 'https://www.youtube.com/embed/'+(u.searchParams.get('v')||u.pathname.split('/').pop());}catch(e){}return url;}
+
+      function loadQuestion(){
+        const rows=activeRows(DB.QuizQuestions);
+        if(!rows.length){document.getElementById('question-text').innerText='سيتم إضافة الأسئلة قريباً.';document.getElementById('options-container').innerHTML='';document.getElementById('quiz-progress').innerText='0 من 0';return;}
+        const q=rows[currentQuestionIndex]; if(!q)return;
+        const options=[q.option_1,q.option_2,q.option_3,q.option_4].filter(x=>x!==''&&x!=null);
+        q._options=options; document.getElementById('quiz-progress').innerText=`${currentQuestionIndex+1} من ${rows.length}`;
+        document.getElementById('question-text').innerText=q.question;
+        document.getElementById('rationale-box').classList.add('hidden');document.getElementById('next-question-btn').classList.add('hidden');
+        document.getElementById('options-container').innerHTML=options.map((o,i)=>`<button onclick="selectOption(${i})" id="opt-btn-${i}" class="w-full text-right p-4 rounded-2xl border-2 border-slate-200 hover:border-medical-500 font-semibold text-slate-700 flex items-center justify-between gap-3"><span>${safe(o)}</span><span class="w-6 h-6 rounded-full border-2 border-slate-300"></span></button>`).join('');
+      }
+      function selectOption(i){
+        const rows=activeRows(DB.QuizQuestions),q=rows[currentQuestionIndex];if(answered||!q)return;answered=true;
+        const correct=Number(q.correct_option_index);if(i===correct){score++;document.getElementById('quiz-score').innerText=score;}
+        q._options.forEach((_,idx)=>{const b=document.getElementById(`opt-btn-${idx}`);b.disabled=true;if(idx===correct){b.className='w-full text-right p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 font-bold text-emerald-900 flex items-center justify-between gap-3';b.querySelector('span:last-child').innerHTML='<i class="fa-solid fa-check"></i>';}else if(idx===i){b.className='w-full text-right p-4 rounded-2xl border-2 border-rose-500 bg-rose-50 text-rose-900 flex items-center justify-between gap-3';}}
+        );
+        document.getElementById('rationale-text').innerText=q.rationale||'';document.getElementById('rationale-box').classList.remove('hidden');document.getElementById('next-question-btn').classList.remove('hidden');
+      }
+      function nextQuestion(){const rows=activeRows(DB.QuizQuestions);currentQuestionIndex++;if(currentQuestionIndex<rows.length){answered=false;loadQuestion();}else{document.getElementById('quiz-box').classList.add('hidden');document.getElementById('quiz-result').classList.remove('hidden');document.getElementById('final-score-text').innerText=`حصلت على ${score} من ${rows.length} إجابات صحيحة!`;}}
+      function restartQuiz(){currentQuestionIndex=0;score=0;answered=false;document.getElementById('quiz-score').innerText='0';document.getElementById('quiz-result').classList.add('hidden');document.getElementById('quiz-box').classList.remove('hidden');loadQuestion();}
+
+      function renderCommunity(){
+        const feed=document.getElementById('questions-feed');if(!feed)return;
+        const rows=(DB.CommunityQuestions||[]).filter(q=>['approved','published','مقبول','منشور'].includes(String(q.status||'').toLowerCase()));
+        if(!rows.length){feed.innerHTML='<p class="text-sm text-slate-300">لا توجد أسئلة منشورة حتى الآن. يمكنك إرسال سؤالك وسيظهر بعد المراجعة.</p>';return;}
+        feed.innerHTML=rows.slice().reverse().map(q=>`<div class="bg-slate-900/70 border border-slate-700 rounded-2xl p-4 space-y-2"><div class="flex justify-between gap-2"><b class="text-sm text-medical-400">${safe(q.author)}</b><span class="text-xs text-medical-300">${safe(q.subject)}</span></div><p class="text-sm text-slate-200">${safe(q.question_text)}</p>${q.answer_text?`<div class="text-sm text-emerald-300 border-t border-slate-700 pt-2">رد: ${safe(q.answer_text)}</div>`:''}</div>`).join('');
+      }
+      async function handleQuestionSubmit(e){
+        e.preventDefault();const author=document.getElementById('q-author').value.trim(),subject=document.getElementById('q-subject').value,textValue=document.getElementById('q-text').value.trim();
+        if(!author||!textValue)return;
+        try{await callServer('submitCommunityQuestion',{author,subject,question_text:textValue});document.getElementById('q-text').value='';showToast('تم استلام سؤالك وسيظهر بعد مراجعته.','success');}
+        catch(err){showToast('تعذر إرسال السؤال: '+err.message,'error');}
+      }
+      function shareToTelegram(){const subject=document.getElementById('q-subject').value,t=document.getElementById('q-text').value.trim();const msg=t?`سؤال في مادة (${subject}) من NurseHub:\n${t}`:`محتاج مساعدة في مادة (${subject})`;window.open(`https://t.me/share/url?url=${encodeURIComponent(location.href)}&text=${encodeURIComponent(msg)}`,'_blank');}
+      function openContributeModal(){document.getElementById('contribute-modal').classList.remove('hidden');}
+      function closeModal(id){document.getElementById(id).classList.add('hidden');}
+      function handleContributeSubmit(e){e.preventDefault();showToast('تم استلام بيانات المساهمة. تواصل مع إدارة المنصة لإرسال الملف للمراجعة.','success');closeModal('contribute-modal');e.target.reset();}
+      function showToast(message,type='success'){
+        const c=document.getElementById('toast-container'),t=document.createElement('div');t.className='bg-slate-800 text-white px-5 py-3.5 rounded-2xl shadow-xl text-sm font-bold border border-white/10';t.textContent=message;c.appendChild(t);setTimeout(()=>t.remove(),4000);
+      }
+    </script>
+</body>
+</html>

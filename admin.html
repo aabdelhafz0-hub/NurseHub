@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><base target="_self"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com"></script>
+<title>NurseHub Admin</title><style>body{font-family:Cairo,sans-serif;background:#f1f5f9}</style><script src="./config.js"></script><script src="./api.js"></script></head>
+<body class="min-h-screen text-slate-800"><header class="bg-slate-900 text-white p-5"><div class="max-w-7xl mx-auto flex justify-between items-center"><div><h1 class="font-extrabold text-2xl">NurseHub | لوحة التحكم</h1><p class="text-slate-300 text-sm">إدارة محتوى الموقع مباشرة من Google Sheets</p></div><a class="text-teal-300 underline" href="./index.html">عرض الموقع</a></div></header>
+<main class="max-w-7xl mx-auto p-4 md:p-8">
+<section id="login" class="max-w-md mx-auto bg-white rounded-2xl p-6 shadow mt-12"><h2 class="font-bold text-xl mb-4">تسجيل دخول المدير</h2><input id="password" type="password" placeholder="كلمة مرور الإدارة" class="w-full border rounded-xl p-3 mb-3"><button onclick="login()" class="w-full bg-teal-700 text-white rounded-xl p-3 font-bold">دخول</button><p id="loginError" class="text-red-600 text-sm mt-3"></p></section>
+<section id="panel" class="hidden">
+<div class="flex flex-wrap gap-2 mb-5" id="tabs"></div>
+<div class="bg-white rounded-2xl shadow p-4 md:p-6">
+<div class="flex justify-between items-center gap-3 mb-4"><h2 id="sheetTitle" class="font-extrabold text-xl"></h2><button onclick="newRecord()" class="bg-teal-700 text-white rounded-xl px-4 py-2 font-bold">+ إضافة سجل</button></div>
+<div class="overflow-x-auto"><table class="w-full text-sm text-right"><thead id="thead" class="bg-slate-100"></thead><tbody id="tbody"></tbody></table></div>
+<p class="text-xs text-slate-500 mt-4">اضغط «تعديل» لتعديل سجل بصيغة JSON، أو «حذف» لإزالته نهائياً.</p>
+</div>
+<div id="editor" class="hidden bg-white rounded-2xl shadow p-5 mt-5"><h3 id="editorTitle" class="font-bold text-lg mb-3"></h3><textarea id="json" rows="14" dir="ltr" class="w-full border rounded-xl p-3 font-mono text-sm"></textarea><div class="flex gap-2 mt-3"><button onclick="saveRecord()" class="bg-teal-700 text-white rounded-xl px-5 py-2 font-bold">حفظ</button><button onclick="closeEditor()" class="bg-slate-200 rounded-xl px-5 py-2">إلغاء</button></div><p id="editorError" class="text-red-600 text-sm mt-2"></p></div>
+</section></main>
+<script>
+const SHEETS=['AcademicSubjects','Books','Summaries','QuizQuestions','Videos','SiteSettings','CommunityQuestions'];
+const LABELS={AcademicSubjects:'الفرق والمواد',Books:'الكتب',Summaries:'الملخصات',QuizQuestions:'الاختبارات',Videos:'الفيديوهات',SiteSettings:'إعدادات الموقع',CommunityQuestions:'أسئلة الطلاب'};
+let token='',allData={},current='AcademicSubjects',editing=null;
+function server(name,...args){return window.NurseHubAPI.call(name,...args);}
+async function login(){document.getElementById('loginError').textContent='';try{token=await server('adminLogin',document.getElementById('password').value);sessionStorage.setItem('nh_admin_token',token);await load();}catch(e){document.getElementById('loginError').textContent=e.message;}}
+async function load(){try{allData=await server('adminGetData',token);document.getElementById('login').classList.add('hidden');document.getElementById('panel').classList.remove('hidden');drawTabs();showSheet(current);}catch(e){sessionStorage.removeItem('nh_admin_token');document.getElementById('login').classList.remove('hidden');document.getElementById('loginError').textContent=e.message;}}
+function drawTabs(){document.getElementById('tabs').innerHTML=SHEETS.map(s=>`<button onclick="showSheet('${s}')" class="rounded-xl px-4 py-2 font-bold ${s===current?'bg-teal-700 text-white':'bg-white text-slate-700'}">${LABELS[s]}</button>`).join('');}
+function showSheet(s){current=s;drawTabs();const rows=allData[s]||[];document.getElementById('sheetTitle').textContent=LABELS[s];const keys=rows.length?Object.keys(rows[0]):(s==='SiteSettings'?['setting_key','setting_value','description']:s==='CommunityQuestions'?['id','author','year','subject','question_text','answer_text','created_at','status']:[]);
+document.getElementById('thead').innerHTML='<tr>'+keys.map(k=>`<th class="p-3">${esc(k)}</th>`).join('')+'<th class="p-3">إجراءات</th></tr>';
+document.getElementById('tbody').innerHTML=rows.map((r,i)=>`<tr class="border-b align-top">${keys.map(k=>`<td class="p-3 max-w-xs"><div class="max-h-20 overflow-hidden">${esc(String(r[k]??''))}</div></td>`).join('')}<td class="p-3 whitespace-nowrap"><button onclick="editRecord(${i})" class="text-teal-700 font-bold ml-2">تعديل</button>${s!=='SiteSettings'?`<button onclick="deleteRecord(${JSON.stringify(String(r.id))})" class="text-red-600 font-bold">حذف</button>`:''}</td></tr>`).join('')||'<tr><td class="p-4 text-slate-500">لا توجد سجلات بعد.</td></tr>';closeEditor();}
+function editRecord(i){editing=i;document.getElementById('editorTitle').textContent='تعديل سجل';document.getElementById('json').value=JSON.stringify(allData[current][i],null,2);document.getElementById('editor').classList.remove('hidden');}
+function newRecord(){editing=-1;const template={};const first=(allData[current]||[])[0];if(first)Object.keys(first).forEach(k=>template[k]='');else if(current==='SiteSettings')Object.assign(template,{setting_key:'',setting_value:'',description:''});else if(current==='CommunityQuestions')Object.assign(template,{id:'',author:'',year:'',subject:'',question_text:'',answer_text:'',created_at:'',status:'pending'});document.getElementById('editorTitle').textContent='إضافة سجل جديد';document.getElementById('json').value=JSON.stringify(template,null,2);document.getElementById('editor').classList.remove('hidden');}
+async function saveRecord(){try{const obj=JSON.parse(document.getElementById('json').value);await server('adminSave',token,current,obj);allData=await server('adminGetData',token);showSheet(current);}catch(e){document.getElementById('editorError').textContent=e.message;}}
+async function deleteRecord(id){if(!confirm('متأكد من حذف السجل؟ لا يمكن التراجع.'))return;try{await server('adminDelete',token,current,id);allData=await server('adminGetData',token);showSheet(current);}catch(e){alert(e.message);}}
+function closeEditor(){document.getElementById('editor').classList.add('hidden');document.getElementById('editorError').textContent='';}
+function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+const saved=sessionStorage.getItem('nh_admin_token');if(saved){token=saved;load();}
+</script></body></html>
