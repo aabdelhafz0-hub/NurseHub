@@ -1,15 +1,14 @@
-// NurseHub CSV connection settings
-// Spreadsheet ID from the NurseHub Google Sheets workbook.
+// NurseHub — الاتصال بملف Google Sheets المنشور بصيغة CSV
 window.NURSEHUB_CONFIG = {
-  spreadsheetId: '1cJJz0AaMrtU7fDkueh3p1xLWwzK9GxOFd6iLZZb-bSI',
+  publishedUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQI8uT1pJxXCrodWGLdEIayKCZLW6O_X6ot5D9pEuUCPI4NZTA40HO_gYXTEKzM78Jc7JQY4g9I-2t-/pub",
   sheetNames: [
-    'AcademicSubjects',
-    'Books',
-    'Summaries',
-    'QuizQuestions',
-    'Videos',
-    'SiteSettings',
-    'CommunityQuestions'
+    "AcademicSubjects",
+    "Books",
+    "Summaries",
+    "QuizQuestions",
+    "Videos",
+    "SiteSettings",
+    "CommunityQuestions"
   ],
   cacheMinutes: 3
 };
