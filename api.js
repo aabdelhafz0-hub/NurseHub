@@ -9,10 +9,19 @@
   const cache = new Map();
 
   function csvUrl(sheet) {
+    // استخدم الرابط المباشر للورقة إذا كان موجودًا في config.js.
+    const directUrl = String((cfg.sheetUrls || {})[sheet] || "").trim();
+    if (directUrl) {
+      const url = new URL(directUrl);
+      url.searchParams.set("_", String(Date.now()));
+      return url.toString();
+    }
+
     if (!PUBLISHED_URL) {
       throw new Error("لم يتم ضبط رابط Google Sheets المنشور في config.js");
     }
-    // Google Sheets publishes a CSV export per tab. `sheet` selects the tab name.
+
+    // رابط احتياطي للأوراق التي لم نضف رابط CSV مباشرًا لها بعد.
     const url = new URL(PUBLISHED_URL);
     url.searchParams.set("output", "csv");
     url.searchParams.set("sheet", sheet);
