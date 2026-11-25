@@ -82,6 +82,7 @@
 
     <!-- Toast Notification Container (Replaces alert) -->
     <div id="toast-container" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2"></div>
+    <div id="data-updated" class="fixed bottom-2 right-3 z-30 text-[10px] text-slate-400 bg-white/80 px-2 py-1 rounded-lg"></div>
 
     <!-- Top Navigation Bar -->
     <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
@@ -715,143 +716,51 @@
     <script src="./api.js"></script>
     <script>
       const DB = {AcademicSubjects:[],Books:[],Summaries:[],QuizQuestions:[],Videos:[],SiteSettings:{},CommunityQuestions:[]};
-      let currentYear = 1, currentCategory = 'all', currentQuestionIndex = 0, score = 0, answered = false;
-      let activeSummary = null, activeVideo = null;
-
-      function callServer(method, ...args) {
-        return window.NurseHubAPI.call(method, ...args);
-      }
-      function activeRows(rows) {
-        return (rows || []).filter(x => x.is_active === true || String(x.is_active).toLowerCase() === 'true' || x.is_active === 1 || x.is_active === '');
-      }
-      function setting(key, fallback='') { return DB.SiteSettings[key] || fallback; }
-      function safe(v) { return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
-
-      document.addEventListener('DOMContentLoaded', async () => {
-        document.getElementById('mobile-menu-btn')?.addEventListener('click', () => document.getElementById('mobile-menu').classList.toggle('hidden'));
-        document.querySelectorAll('.mobile-link').forEach(a => a.addEventListener('click', () => document.getElementById('mobile-menu').classList.add('hidden')));
-        try {
-          const data = await callServer('getPublicData');
-          Object.assign(DB, data);
-          document.title = (setting('site_name','NurseHub')) + ' | ' + setting('site_tagline','منصة طلاب التمريض');
-          document.querySelectorAll('header a[href="#"]').forEach(a => { const s=a.querySelector('span'); if(s) s.textContent=setting('site_name','NurseHub'); });
-          document.querySelectorAll('a[href="https://t.me"]').forEach(a => a.href=setting('telegram_url','https://t.me'));
-          selectYear(1); renderBooks(activeRows(DB.Books)); renderSummaries('all'); renderVideos(); renderCommunity(); loadQuestion();
-        } catch (e) {
-          console.error(e); showToast('تعذر تحميل البيانات. راجع إعدادات الربط ونشر التطبيق.', 'error');
-        }
+      let currentYear=1,currentCategory='all',currentQuestionIndex=0,score=0,answered=false,activeSummary=null;
+      function activeRows(rows){return (rows||[]).filter(x=>x.is_active===true||String(x.is_active).toLowerCase()==='true'||x.is_active===1||String(x.is_active)==='1'||x.is_active==='');}
+      function setting(key,fallback=''){return DB.SiteSettings[key]||fallback;}
+      function safe(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+      document.addEventListener('DOMContentLoaded',async()=>{
+        document.getElementById('mobile-menu-btn')?.addEventListener('click',()=>document.getElementById('mobile-menu').classList.toggle('hidden'));
+        document.querySelectorAll('.mobile-link').forEach(a=>a.addEventListener('click',()=>document.getElementById('mobile-menu').classList.add('hidden')));
+        try{
+          const data=await NurseHubAPI.getAllData();Object.assign(DB,data);
+          document.title=setting('site_name','NurseHub')+' | '+setting('site_tagline','منصة طلاب التمريض');
+          document.querySelectorAll('a[href="https://t.me"]').forEach(a=>a.href=setting('telegram_url','https://t.me'));
+          selectYear(1);renderBooks(activeRows(DB.Books));renderSummaries('all');renderVideos();renderCommunity();loadQuestion();
+          const stamp=document.getElementById('data-updated');if(stamp)stamp.textContent='آخر تحديث للبيانات: '+new Date().toLocaleString('ar-EG');
+        }catch(e){console.error(e);showToast('تعذر تحميل بيانات الشيت. تأكد من مشاركة الشيت كـ «أي شخص لديه الرابط: مشاهد» ثم حدّث الصفحة.','error');}
       });
-
-      function selectYear(year) {
-        currentYear = Number(year);
-        document.querySelectorAll('.year-tab').forEach((tab, idx) => {
-          const icon=tab.querySelector('i'), subtext=tab.querySelectorAll('span')[1];
-          if(idx+1===currentYear){tab.className='year-tab active p-4 sm:p-5 rounded-2xl border-2 border-medical-600 bg-medical-600 text-white font-bold text-center shadow-md transition-all flex flex-col items-center gap-2'; icon?.classList.remove('text-medical-600'); if(subtext) subtext.className='text-xs opacity-90 font-normal';}
-          else {tab.className='year-tab p-4 sm:p-5 rounded-2xl border-2 border-slate-200 bg-white text-slate-700 hover:border-medical-400 font-bold text-center transition-all flex flex-col items-center gap-2'; icon?.classList.add('text-medical-600'); if(subtext) subtext.className='text-xs text-slate-500 font-normal';}
-        });
-        const subjects=activeRows(DB.AcademicSubjects).filter(x=>Number(x.year)===currentYear);
-        const container=document.getElementById('subjects-container');
-        container.innerHTML=subjects.length?subjects.map(sub=>`
-          <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm card-hover flex flex-col justify-between">
-            <div><div class="flex items-center justify-between mb-4"><div class="w-12 h-12 rounded-2xl bg-medical-50 text-medical-600 flex items-center justify-center text-xl border border-medical-100"><i class="fa-solid ${safe(sub.icon||'fa-book')}"></i></div>
-            <div class="flex gap-2 text-xs font-bold"><span class="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg">${safe(sub.summaries_count||0)} ملخصات</span><span class="bg-sky-50 text-sky-600 px-2.5 py-1 rounded-lg">${safe(sub.videos_count||0)} فيديو</span></div></div>
-            <h3 class="text-xl font-extrabold text-slate-800 mb-2">${safe(sub.subject_name)}</h3><p class="text-sm text-slate-500 leading-relaxed mb-6">${safe(sub.description)}</p></div>
-            <div class="pt-4 border-t border-slate-100 flex items-center justify-between gap-2"><a href="#summaries-section" onclick="filterSummaries('${safe(sub.subject_name)}')" class="text-sm font-bold text-medical-600">تصفح الملخصات ←</a><a href="${safe(sub.telegram_url||setting('telegram_url','https://t.me'))}" target="_blank" class="text-xs font-bold bg-sky-50 text-sky-600 px-3 py-1.5 rounded-lg">نقاش المادة</a></div>
-          </div>`).join(''):'<p class="col-span-full text-center text-slate-500 py-8">لا توجد مواد مضافة لهذه الفرقة حتى الآن.</p>';
+      function selectYear(year){
+        currentYear=Number(year);
+        document.querySelectorAll('.year-tab').forEach((tab,idx)=>{const icon=tab.querySelector('i'),subtext=tab.querySelectorAll('span')[1];if(idx+1===currentYear){tab.className='year-tab active p-4 sm:p-5 rounded-2xl border-2 border-medical-600 bg-medical-600 text-white font-bold text-center shadow-md transition-all flex flex-col items-center gap-2';icon?.classList.remove('text-medical-600');if(subtext)subtext.className='text-xs opacity-90 font-normal';}else{tab.className='year-tab p-4 sm:p-5 rounded-2xl border-2 border-slate-200 bg-white text-slate-700 hover:border-medical-400 font-bold text-center transition-all flex flex-col items-center gap-2';icon?.classList.add('text-medical-600');if(subtext)subtext.className='text-xs text-slate-500 font-normal';}});
+        const subjects=activeRows(DB.AcademicSubjects).filter(x=>Number(x.year)===currentYear),container=document.getElementById('subjects-container');
+        container.innerHTML=subjects.length?subjects.map(sub=>`<div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm card-hover flex flex-col justify-between"><div><div class="flex items-center justify-between mb-4"><div class="w-12 h-12 rounded-2xl bg-medical-50 text-medical-600 flex items-center justify-center text-xl border border-medical-100"><i class="fa-solid ${safe(sub.icon||'fa-book')}"></i></div><div class="flex gap-2 text-xs font-bold"><span class="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg">${safe(sub.summaries_count||0)} ملخصات</span><span class="bg-sky-50 text-sky-600 px-2.5 py-1 rounded-lg">${safe(sub.videos_count||0)} فيديو</span></div></div><h3 class="text-xl font-extrabold text-slate-800 mb-2">${safe(sub.subject_name)}</h3><p class="text-sm text-slate-500 leading-relaxed mb-6">${safe(sub.description)}</p></div><div class="pt-4 border-t border-slate-100 flex items-center justify-between gap-2"><a href="#summaries-section" onclick="filterSummaries('${safe(sub.subject_name)}')" class="text-sm font-bold text-medical-600">تصفح الملخصات ←</a><a href="${safe(sub.telegram_url||setting('telegram_url','https://t.me'))}" target="_blank" rel="noopener" class="text-xs font-bold bg-sky-50 text-sky-600 px-3 py-1.5 rounded-lg">نقاش المادة</a></div></div>`).join(''):'<p class="col-span-full text-center text-slate-500 py-8">لا توجد مواد مضافة لهذه الفرقة حتى الآن.</p>';
       }
-
-      function renderBooks(list) {
-        const grid=document.getElementById('books-grid');
-        grid.innerHTML=list.length?list.map(b=>`
-          <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm card-hover flex flex-col justify-between"><div>
-          <div class="h-36 rounded-2xl bg-gradient-to-br from-medical-50 to-slate-100 border flex flex-col items-center justify-center mb-4"><i class="fa-solid ${safe(b.icon||'fa-book-medical')} text-4xl text-medical-600 mb-2"></i><span class="text-xs font-bold text-medical-800 bg-white px-2.5 py-0.5 rounded-full">${safe(b.year)}</span></div>
-          <h3 class="font-bold text-slate-800 text-base mb-2">${safe(b.title)}</h3><div class="flex gap-3 text-xs text-slate-500 mb-4"><span>${safe(b.pages||'')}</span><span>${safe(b.size||'')}</span></div></div>
-          ${b.file_url?`<a href="${safe(b.file_url)}" target="_blank" rel="noopener" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-medical-600 text-white font-bold text-sm text-center">تحميل الكتاب PDF</a>`:'<span class="text-center text-xs text-slate-400 py-2">رابط التحميل سيُضاف قريباً</span>'}</div>`).join(''):'<div class="col-span-full text-center py-8 text-slate-500 font-bold">لا توجد كتب متاحة حالياً.</div>';
-      }
+      function renderBooks(list){const grid=document.getElementById('books-grid');grid.innerHTML=list.length?list.map(b=>`<div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm card-hover flex flex-col justify-between"><div><div class="h-36 rounded-2xl bg-gradient-to-br from-medical-50 to-slate-100 border flex flex-col items-center justify-center mb-4"><i class="fa-solid ${safe(b.icon||'fa-book-medical')} text-4xl text-medical-600 mb-2"></i><span class="text-xs font-bold text-medical-800 bg-white px-2.5 py-0.5 rounded-full">${safe(b.year)}</span></div><h3 class="font-bold text-slate-800 text-base mb-2">${safe(b.title)}</h3><div class="flex gap-3 text-xs text-slate-500 mb-4"><span>${safe(b.pages||'')}</span><span>${safe(b.size||'')}</span></div></div>${b.file_url?`<a href="${safe(b.file_url)}" target="_blank" rel="noopener" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-medical-600 text-white font-bold text-sm text-center">تحميل الكتاب PDF</a>`:'<span class="text-center text-xs text-slate-400 py-2">رابط التحميل سيُضاف قريباً</span>'}</div>`).join(''):'<div class="col-span-full text-center py-8 text-slate-500 font-bold">لا توجد كتب متاحة حالياً.</div>';}
       function filterBooks(){const q=document.getElementById('book-search').value.toLowerCase();renderBooks(activeRows(DB.Books).filter(b=>String(b.title).toLowerCase().includes(q)||String(b.year).toLowerCase().includes(q)));}
-      function renderSummaries(category='all') {
-        currentCategory=category;
-        let rows=activeRows(DB.Summaries);
-        if(category!=='all') rows=rows.filter(s=>String(s.category)===category||String(s.tag)===category||String(s.category)===category.toLowerCase());
+      function renderSummaries(category='all'){
+        currentCategory=category;let rows=activeRows(DB.Summaries);
+        if(category!=='all')rows=rows.filter(s=>String(s.category)===category||String(s.tag)===category||String(s.category)===category.toLowerCase()||String(s.title).includes(category));
         const grid=document.getElementById('summaries-grid');
-        grid.innerHTML=rows.length?rows.map(s=>`
-          <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm card-hover flex flex-col justify-between"><div>
-          <span class="text-xs font-bold text-medical-700 bg-medical-50 px-3 py-1 rounded-full">${safe(s.tag||s.category)}</span>
-          <h3 class="text-lg font-extrabold text-slate-800 mt-4 mb-2">${safe(s.title)}</h3>
-          <div class="text-xs text-slate-500 mb-3">${safe(s.read_time||s.readTime||'')} ${s.author?' • '+safe(s.author):''}</div></div>
-          <div class="flex items-center gap-2 pt-3 border-t border-slate-100">
-          <button onclick="openSummaryModal(${Number(s.id)})" class="flex-1 py-2.5 px-4 rounded-xl bg-medical-600 text-white font-bold text-sm">قراءة الملخص</button>
-          ${s.pdf_url?`<a href="${safe(s.pdf_url)}" target="_blank" class="p-2.5 rounded-xl bg-slate-100 text-slate-600" title="تحميل PDF"><i class="fa-solid fa-download"></i></a>`:''}</div></div>`).join(''):'<div class="col-span-full text-center py-8 text-slate-500">لا توجد ملخصات في هذا القسم حالياً.</div>';
+        grid.innerHTML=rows.length?rows.map(s=>`<div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm card-hover flex flex-col justify-between"><div><span class="text-xs font-bold text-medical-700 bg-medical-50 px-3 py-1 rounded-full">${safe(s.tag||s.category)}</span><h3 class="text-lg font-extrabold text-slate-800 mt-4 mb-2">${safe(s.title)}</h3><div class="text-xs text-slate-500 mb-3">${safe(s.read_time||'')} ${s.author?' • '+safe(s.author):''}</div></div><div class="flex items-center gap-2 pt-3 border-t border-slate-100"><button onclick="openSummaryModal('${safe(s.id)}')" class="flex-1 py-2.5 px-4 rounded-xl bg-medical-600 text-white font-bold text-sm">قراءة الملخص</button>${s.pdf_url?`<a href="${safe(s.pdf_url)}" target="_blank" rel="noopener" class="p-2.5 rounded-xl bg-slate-100 text-slate-600" title="تحميل PDF"><i class="fa-solid fa-download"></i></a>`:''}</div></div>`).join(''):'<div class="col-span-full text-center py-8 text-slate-500">لا توجد ملخصات في هذا القسم حالياً.</div>';
       }
       function filterSummaries(cat){renderSummaries(cat);}
-      function openSummaryModal(id){
-        const s=activeRows(DB.Summaries).find(x=>Number(x.id)===Number(id)); if(!s)return;
-        activeSummary=s; document.getElementById('modal-summary-tag').innerText=s.tag||s.category||'ملخص';
-        document.getElementById('modal-summary-title').innerText=s.title||'';
-        document.getElementById('modal-summary-body').innerHTML=s.content_html||'<p>لا يوجد محتوى نصي لهذا الملخص.</p>';
-        const pdf=document.querySelector('#summary-modal .p-4 button');
-        if(pdf){pdf.onclick=()=>s.pdf_url?window.open(s.pdf_url,'_blank'):showToast('لم تتم إضافة رابط PDF بعد.','info');}
-        document.getElementById('summary-modal').classList.remove('hidden');
-      }
-
-      function renderVideos(){
-        const host=document.querySelector('#videos-section .grid.md\\:grid-cols-3');
-        if(!host)return;
-        const rows=activeRows(DB.Videos);
-        host.innerHTML=rows.length?rows.map(v=>`<div class="bg-slate-800/80 border border-slate-700 rounded-3xl overflow-hidden card-hover group">
-          <div class="relative h-48 bg-gradient-to-br from-medical-700 to-slate-800 flex items-center justify-center overflow-hidden">
-          ${v.thumbnail_url?`<img src="${safe(v.thumbnail_url)}" class="w-full h-full object-cover" alt="">`:`<i class="fa-solid fa-circle-play text-6xl text-white/30"></i>`}
-          <button onclick="openVideoModal(${JSON.stringify(String(v.title||''))},${JSON.stringify(String(v.description||''))},${JSON.stringify(String(v.video_url||''))})" class="absolute w-16 h-16 rounded-full bg-medical-500 text-white flex items-center justify-center"><i class="fa-solid fa-play text-xl"></i></button>
-          <span class="absolute bottom-3 right-3 bg-black/70 text-xs px-2.5 py-1 rounded-lg">${safe(v.duration||'')}</span></div>
-          <div class="p-6"><span class="text-xs font-bold text-medical-400">${safe(v.subject_name||v.year||'')}</span><h3 class="text-xl font-bold mt-1 mb-2">${safe(v.title)}</h3><p class="text-slate-400 text-sm">${safe(v.description||'')}</p></div></div>`).join(''):'<div class="col-span-full text-center text-slate-300 py-8">سيتم إضافة الفيديوهات قريباً.</div>';
-      }
-      function openVideoModal(title,desc,url=''){
-        document.getElementById('modal-video-title').innerText=title; document.getElementById('modal-video-desc').innerText=desc;
-        const box=document.querySelector('#video-modal .aspect-video');
-        box.innerHTML=url?`<iframe class="w-full h-full" src="${safe(toEmbedUrl(url))}" title="${safe(title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`:`<div class="p-8 text-center text-slate-300">${safe(desc)}<p class="mt-3 text-xs">لم تتم إضافة رابط تشغيل للفيديو.</p></div>`;
-        document.getElementById('video-modal').classList.remove('hidden');
-      }
+      function openSummaryModal(id){const s=activeRows(DB.Summaries).find(x=>String(x.id)===String(id));if(!s)return;activeSummary=s;document.getElementById('modal-summary-tag').innerText=s.tag||s.category||'ملخص';document.getElementById('modal-summary-title').innerText=s.title||'';document.getElementById('modal-summary-body').innerHTML=s.content_html||'<p>لا يوجد محتوى نصي لهذا الملخص.</p>';const pdf=document.querySelector('#summary-modal .p-4 button');if(pdf)pdf.onclick=()=>s.pdf_url?window.open(s.pdf_url,'_blank'):showToast('لم تتم إضافة رابط PDF بعد.','info');document.getElementById('summary-modal').classList.remove('hidden');}
+      function renderVideos(){const host=document.querySelector('#videos-section .grid.md\\:grid-cols-3');if(!host)return;const rows=activeRows(DB.Videos);host.innerHTML=rows.length?rows.map(v=>`<div class="bg-slate-800/80 border border-slate-700 rounded-3xl overflow-hidden card-hover group"><div class="relative h-48 bg-gradient-to-br from-medical-700 to-slate-800 flex items-center justify-center overflow-hidden">${v.thumbnail_url?`<img src="${safe(v.thumbnail_url)}" class="w-full h-full object-cover" alt="">`:'<i class="fa-solid fa-circle-play text-6xl text-white/30"></i>'}<button onclick="openVideoModal(${JSON.stringify(String(v.title||''))},${JSON.stringify(String(v.description||''))},${JSON.stringify(String(v.video_url||''))})" class="absolute w-16 h-16 rounded-full bg-medical-500 text-white flex items-center justify-center"><i class="fa-solid fa-play text-xl"></i></button><span class="absolute bottom-3 right-3 bg-black/70 text-xs px-2.5 py-1 rounded-lg">${safe(v.duration||'')}</span></div><div class="p-6"><span class="text-xs font-bold text-medical-400">${safe(v.subject_name||v.year||'')}</span><h3 class="text-xl font-bold mt-1 mb-2">${safe(v.title)}</h3><p class="text-slate-400 text-sm">${safe(v.description||'')}</p></div></div>`).join(''):'<div class="col-span-full text-center text-slate-300 py-8">سيتم إضافة الفيديوهات قريباً.</div>';}
+      function openVideoModal(title,desc,url=''){document.getElementById('modal-video-title').innerText=title;document.getElementById('modal-video-desc').innerText=desc;const box=document.querySelector('#video-modal .aspect-video');box.innerHTML=url?`<iframe class="w-full h-full" src="${safe(toEmbedUrl(url))}" title="${safe(title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`:`<div class="p-8 text-center text-slate-300">${safe(desc)}<p class="mt-3 text-xs">لم تتم إضافة رابط تشغيل للفيديو.</p></div>`;document.getElementById('video-modal').classList.remove('hidden');}
       function toEmbedUrl(url){try{const u=new URL(url);if(u.hostname.includes('youtu.be'))return 'https://www.youtube.com/embed/'+u.pathname.slice(1);if(u.hostname.includes('youtube.com'))return 'https://www.youtube.com/embed/'+(u.searchParams.get('v')||u.pathname.split('/').pop());}catch(e){}return url;}
-
-      function loadQuestion(){
-        const rows=activeRows(DB.QuizQuestions);
-        if(!rows.length){document.getElementById('question-text').innerText='سيتم إضافة الأسئلة قريباً.';document.getElementById('options-container').innerHTML='';document.getElementById('quiz-progress').innerText='0 من 0';return;}
-        const q=rows[currentQuestionIndex]; if(!q)return;
-        const options=[q.option_1,q.option_2,q.option_3,q.option_4].filter(x=>x!==''&&x!=null);
-        q._options=options; document.getElementById('quiz-progress').innerText=`${currentQuestionIndex+1} من ${rows.length}`;
-        document.getElementById('question-text').innerText=q.question;
-        document.getElementById('rationale-box').classList.add('hidden');document.getElementById('next-question-btn').classList.add('hidden');
-        document.getElementById('options-container').innerHTML=options.map((o,i)=>`<button onclick="selectOption(${i})" id="opt-btn-${i}" class="w-full text-right p-4 rounded-2xl border-2 border-slate-200 hover:border-medical-500 font-semibold text-slate-700 flex items-center justify-between gap-3"><span>${safe(o)}</span><span class="w-6 h-6 rounded-full border-2 border-slate-300"></span></button>`).join('');
-      }
-      function selectOption(i){
-        const rows=activeRows(DB.QuizQuestions),q=rows[currentQuestionIndex];if(answered||!q)return;answered=true;
-        const correct=Number(q.correct_option_index);if(i===correct){score++;document.getElementById('quiz-score').innerText=score;}
-        q._options.forEach((_,idx)=>{const b=document.getElementById(`opt-btn-${idx}`);b.disabled=true;if(idx===correct){b.className='w-full text-right p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 font-bold text-emerald-900 flex items-center justify-between gap-3';b.querySelector('span:last-child').innerHTML='<i class="fa-solid fa-check"></i>';}else if(idx===i){b.className='w-full text-right p-4 rounded-2xl border-2 border-rose-500 bg-rose-50 text-rose-900 flex items-center justify-between gap-3';}}
-        );
-        document.getElementById('rationale-text').innerText=q.rationale||'';document.getElementById('rationale-box').classList.remove('hidden');document.getElementById('next-question-btn').classList.remove('hidden');
-      }
+      function loadQuestion(){const rows=activeRows(DB.QuizQuestions),q=rows[currentQuestionIndex];if(!rows.length||!q){document.getElementById('question-text').innerText='سيتم إضافة الأسئلة قريباً.';document.getElementById('options-container').innerHTML='';document.getElementById('quiz-progress').innerText='0 من 0';return;}const options=[q.option_1,q.option_2,q.option_3,q.option_4].filter(x=>x!==''&&x!=null);q._options=options;document.getElementById('quiz-progress').innerText=`${currentQuestionIndex+1} من ${rows.length}`;document.getElementById('question-text').innerText=q.question;document.getElementById('rationale-box').classList.add('hidden');document.getElementById('next-question-btn').classList.add('hidden');document.getElementById('options-container').innerHTML=options.map((o,i)=>`<button onclick="selectOption(${i})" id="opt-btn-${i}" class="w-full text-right p-4 rounded-2xl border-2 border-slate-200 hover:border-medical-500 font-semibold text-slate-700 flex items-center justify-between gap-3"><span>${safe(o)}</span><span class="w-6 h-6 rounded-full border-2 border-slate-300"></span></button>`).join('');}
+      function selectOption(i){const rows=activeRows(DB.QuizQuestions),q=rows[currentQuestionIndex];if(answered||!q)return;answered=true;const correct=Number(q.correct_option_index);if(i===correct){score++;document.getElementById('quiz-score').innerText=score;}q._options.forEach((_,idx)=>{const b=document.getElementById(`opt-btn-${idx}`);b.disabled=true;if(idx===correct){b.className='w-full text-right p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 font-bold text-emerald-900 flex items-center justify-between gap-3';b.querySelector('span:last-child').innerHTML='<i class="fa-solid fa-check"></i>';}else if(idx===i)b.className='w-full text-right p-4 rounded-2xl border-2 border-rose-500 bg-rose-50 text-rose-900 flex items-center justify-between gap-3';});document.getElementById('rationale-text').innerText=q.rationale||'';document.getElementById('rationale-box').classList.remove('hidden');document.getElementById('next-question-btn').classList.remove('hidden');}
       function nextQuestion(){const rows=activeRows(DB.QuizQuestions);currentQuestionIndex++;if(currentQuestionIndex<rows.length){answered=false;loadQuestion();}else{document.getElementById('quiz-box').classList.add('hidden');document.getElementById('quiz-result').classList.remove('hidden');document.getElementById('final-score-text').innerText=`حصلت على ${score} من ${rows.length} إجابات صحيحة!`;}}
       function restartQuiz(){currentQuestionIndex=0;score=0;answered=false;document.getElementById('quiz-score').innerText='0';document.getElementById('quiz-result').classList.add('hidden');document.getElementById('quiz-box').classList.remove('hidden');loadQuestion();}
-
-      function renderCommunity(){
-        const feed=document.getElementById('questions-feed');if(!feed)return;
-        const rows=(DB.CommunityQuestions||[]).filter(q=>['approved','published','مقبول','منشور'].includes(String(q.status||'').toLowerCase()));
-        if(!rows.length){feed.innerHTML='<p class="text-sm text-slate-300">لا توجد أسئلة منشورة حتى الآن. يمكنك إرسال سؤالك وسيظهر بعد المراجعة.</p>';return;}
-        feed.innerHTML=rows.slice().reverse().map(q=>`<div class="bg-slate-900/70 border border-slate-700 rounded-2xl p-4 space-y-2"><div class="flex justify-between gap-2"><b class="text-sm text-medical-400">${safe(q.author)}</b><span class="text-xs text-medical-300">${safe(q.subject)}</span></div><p class="text-sm text-slate-200">${safe(q.question_text)}</p>${q.answer_text?`<div class="text-sm text-emerald-300 border-t border-slate-700 pt-2">رد: ${safe(q.answer_text)}</div>`:''}</div>`).join('');
-      }
-      async function handleQuestionSubmit(e){
-        e.preventDefault();const author=document.getElementById('q-author').value.trim(),subject=document.getElementById('q-subject').value,textValue=document.getElementById('q-text').value.trim();
-        if(!author||!textValue)return;
-        try{await callServer('submitCommunityQuestion',{author,subject,question_text:textValue});document.getElementById('q-text').value='';showToast('تم استلام سؤالك وسيظهر بعد مراجعته.','success');}
-        catch(err){showToast('تعذر إرسال السؤال: '+err.message,'error');}
-      }
-      function shareToTelegram(){const subject=document.getElementById('q-subject').value,t=document.getElementById('q-text').value.trim();const msg=t?`سؤال في مادة (${subject}) من NurseHub:\n${t}`:`محتاج مساعدة في مادة (${subject})`;window.open(`https://t.me/share/url?url=${encodeURIComponent(location.href)}&text=${encodeURIComponent(msg)}`,'_blank');}
+      function renderCommunity(){const feed=document.getElementById('questions-feed');if(!feed)return;const rows=(DB.CommunityQuestions||[]).filter(q=>['approved','published','مقبول','منشور'].includes(String(q.status||'').toLowerCase()));feed.innerHTML=rows.length?rows.slice().reverse().map(q=>`<div class="bg-slate-900/70 border border-slate-700 rounded-2xl p-4 space-y-2"><div class="flex justify-between gap-2"><b class="text-sm text-medical-400">${safe(q.author)}</b><span class="text-xs text-medical-300">${safe(q.subject)}</span></div><p class="text-sm text-slate-200">${safe(q.question_text)}</p>${q.answer_text?`<div class="text-sm text-emerald-300 border-t border-slate-700 pt-2">رد: ${safe(q.answer_text)}</div>`:''}</div>`).join(''):'<p class="text-sm text-slate-300">لا توجد أسئلة منشورة حتى الآن. يمكنك إرسال سؤالك عبر جروب الدفعة.</p>';}
+      function handleQuestionSubmit(e){e.preventDefault();showToast('إرسال الأسئلة من الموقع غير متاح مع ربط CSV للقراءة فقط. ابعت سؤالك عبر جروب التليجرام.','info');}
+      function shareToTelegram(){const subject=document.getElementById('q-subject').value,t=document.getElementById('q-text').value.trim(),msg=t?`سؤال في مادة (${subject}) من NurseHub:\n${t}`:`محتاج مساعدة في مادة (${subject})`;window.open(`https://t.me/share/url?url=${encodeURIComponent(location.href)}&text=${encodeURIComponent(msg)}`,'_blank');}
       function openContributeModal(){document.getElementById('contribute-modal').classList.remove('hidden');}
       function closeModal(id){document.getElementById(id).classList.add('hidden');}
-      function handleContributeSubmit(e){e.preventDefault();showToast('تم استلام بيانات المساهمة. تواصل مع إدارة المنصة لإرسال الملف للمراجعة.','success');closeModal('contribute-modal');e.target.reset();}
-      function showToast(message,type='success'){
-        const c=document.getElementById('toast-container'),t=document.createElement('div');t.className='bg-slate-800 text-white px-5 py-3.5 rounded-2xl shadow-xl text-sm font-bold border border-white/10';t.textContent=message;c.appendChild(t);setTimeout(()=>t.remove(),4000);
-      }
+      function handleContributeSubmit(e){e.preventDefault();showToast('الموقع مرتبط بالشيت للقراءة فقط. أرسل المساهمة للإدارة لإضافتها إلى Google Sheets.','info');closeModal('contribute-modal');}
+      function showToast(message,type='success'){const c=document.getElementById('toast-container'),t=document.createElement('div');t.className='bg-slate-800 text-white px-5 py-3.5 rounded-2xl shadow-xl text-sm font-bold border border-white/10';t.textContent=message;c.appendChild(t);setTimeout(()=>t.remove(),4500);}
     </script>
 </body>
 </html>

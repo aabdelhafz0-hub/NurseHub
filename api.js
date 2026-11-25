@@ -1,97 +1,74 @@
-/* NurseHub browser API bridge: JSONP reads + simple no-cors POST writes. */
+/* NurseHub CSV reader: public, read-only Google Sheets connection. */
 (function () {
   'use strict';
+  const cfg = window.NURSEHUB_CONFIG || {};
+  const ID = String(cfg.spreadsheetId || '').trim();
+  const SHEETS = cfg.sheetNames || [];
+  const CACHE_MS = Math.max(0, Number(cfg.cacheMinutes || 3)) * 60 * 1000;
+  const cache = new Map();
 
-  function endpoint() {
-    const url = String(window.NURSEHUB_API_URL || '').trim();
-    if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(url)) {
-      throw new Error('لم يتم ضبط رابط قاعدة البيانات بعد. افتح config.js وضع رابط Web App.');
+  function csvUrl(sheet) {
+    if (!ID) throw new Error('لم يتم ضبط Spreadsheet ID في config.js');
+    return 'https://docs.google.com/spreadsheets/d/' + encodeURIComponent(ID) +
+      '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(sheet) +
+      '&_=' + Date.now();
+  }
+
+  function parseCSV(text) {
+    const rows = [];
+    let row = [], field = '', quoted = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i], next = text[i + 1];
+      if (quoted) {
+        if (c === '"' && next === '"') { field += '"'; i++; }
+        else if (c === '"') quoted = false;
+        else field += c;
+      } else {
+        if (c === '"') quoted = true;
+        else if (c === ',') { row.push(field); field = ''; }
+        else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+        else if (c !== '\r') field += c;
+      }
     }
-    return url;
+    if (field.length || row.length) { row.push(field); rows.push(row); }
+    return rows;
   }
 
-  function makeId() {
-    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID().replace(/[^A-Za-z0-9_-]/g, '');
-    return 'nh' + Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+  function normalize(v) {
+    const s = String(v == null ? '' : v).trim();
+    if (s === '') return '';
+    if (s.toLowerCase() === 'true') return true;
+    if (s.toLowerCase() === 'false') return false;
+    return s;
   }
 
-  function jsonp(params) {
-    return new Promise((resolve, reject) => {
-      const cb = '__nursehub_jsonp_' + makeId();
-      const script = document.createElement('script');
-      let timer;
-      const cleanup = () => {
-        if (timer) clearTimeout(timer);
-        delete window[cb];
-        script.remove();
-      };
-      window[cb] = (result) => {
-        cleanup();
-        if (!result || result.ok === false) reject(new Error(result && result.error ? result.error : 'تعذر الاتصال بقاعدة البيانات.'));
-        else resolve(result);
-      };
-      script.onerror = () => { cleanup(); reject(new Error('فشل تحميل البيانات من Google Apps Script. تأكد من نشره كتطبيق ويب متاح للجميع.')); };
-      const query = new URLSearchParams(Object.assign({}, params, { callback: cb, _: String(Date.now()) }));
-      script.src = endpoint() + '?' + query.toString();
-      timer = setTimeout(() => { cleanup(); reject(new Error('انتهت مهلة الاتصال بقاعدة البيانات.')); }, 20000);
-      document.head.appendChild(script);
+  async function readSheet(name) {
+    const cached = cache.get(name);
+    if (cached && Date.now() - cached.time < CACHE_MS) return cached.data;
+    const response = await fetch(csvUrl(name), { method: 'GET', cache: 'no-store' });
+    if (!response.ok) throw new Error('تعذر قراءة ورقة ' + name + ' (' + response.status + ')');
+    const raw = await response.text();
+    if (/^\s*</.test(raw)) throw new Error('Google Sheets لم يُرجع CSV للورقة ' + name + '. تأكد من إتاحة الشيت للمشاهدة.');
+    const matrix = parseCSV(raw);
+    if (!matrix.length) return [];
+    const headers = matrix.shift().map(h => String(h).replace(/^\uFEFF/, '').trim());
+    const data = matrix.filter(r => r.some(v => String(v).trim() !== '')).map(r => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = normalize(r[i] || ''));
+      return obj;
     });
+    cache.set(name, { time: Date.now(), data });
+    return data;
   }
 
-  async function post(payload) {
-    const requestId = makeId();
-    const body = Object.assign({}, payload, { requestId: requestId });
-    // text/plain is a CORS-safelisted content type; no-cors lets the browser submit the write
-    // without requiring custom CORS headers from Apps Script. The response is fetched separately.
-    await fetch(endpoint(), {
-      method: 'POST',
-      mode: 'no-cors',
-      credentials: 'omit',
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body: JSON.stringify(body)
-    });
-
-    // Apps Script stores the operation result briefly; the unpredictable ID makes it one-time.
-    let lastError;
-    for (let attempt = 0; attempt < 8; attempt++) {
-      try {
-        const result = await jsonp({ action: 'getResult', requestId: requestId });
-        return result;
-      } catch (err) {
-        lastError = err;
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-    }
-    throw lastError || new Error('لم يصل تأكيد العملية من الخادم.');
+  async function getAllData() {
+    const pairs = await Promise.all(SHEETS.map(async name => [name, await readSheet(name)]));
+    const data = Object.fromEntries(pairs);
+    const settings = {};
+    (data.SiteSettings || []).forEach(row => { settings[String(row.setting_key || '')] = row.setting_value || ''; });
+    data.SiteSettings = settings;
+    return data;
   }
 
-  async function call(method, ...args) {
-    switch (method) {
-      case 'getPublicData': {
-        const result = await jsonp({ action: 'getPublicData' });
-        return result.data || {};
-      }
-      case 'submitCommunityQuestion':
-        return post({ action: 'submitCommunityQuestion', payload: args[0] || {} });
-      case 'adminLogin': {
-        const result = await post({ action: 'adminLogin', password: String(args[0] || '') });
-        if (!result.token) throw new Error('لم يرجع الخادم رمز جلسة الإدارة.');
-        return result.token;
-      }
-      case 'adminGetData': {
-        const result = await jsonp({ action: 'adminGetData', token: String(args[0] || '') });
-        return result.data || {};
-      }
-      case 'adminSave':
-        return post({ action: 'adminSave', token: args[0], sheetName: args[1], record: args[2] });
-      case 'adminDelete':
-        return post({ action: 'adminDelete', token: args[0], sheetName: args[1], id: args[2] });
-      case 'adminSetStatus':
-        return post({ action: 'adminSetStatus', token: args[0], id: args[1], status: args[2] });
-      default:
-        throw new Error('عملية غير مدعومة: ' + method);
-    }
-  }
-
-  window.NurseHubAPI = { call: call, jsonp: jsonp };
+  window.NurseHubAPI = { getAllData, refresh: () => { cache.clear(); return getAllData(); } };
 })();
